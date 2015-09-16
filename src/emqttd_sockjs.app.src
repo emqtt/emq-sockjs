@@ -1,0 +1,12 @@
+{application, emqttd_sockjs,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { emqttd_sockjs_app, []}},
+  {env, []}
+ ]}.
