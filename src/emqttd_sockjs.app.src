@@ -5,7 +5,10 @@
   {registered, []},
   {applications, [
                   kernel,
-                  stdlib
+                  stdlib,
+                  ranch,
+                  cowboy,
+                  sockjs
                  ]},
   {mod, { emqttd_sockjs_app, []}},
   {env, []}
