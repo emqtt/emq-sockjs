@@ -33,7 +33,7 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/1, recv/2, close/1]).
+-export([start_link/2, recv/2, close/1]).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Exports
@@ -48,8 +48,8 @@
 %% API Function Definitions
 %% ------------------------------------------------------------------
 
-start_link(Conn) ->
-    gen_server:start_link(?MODULE, [Conn], []).
+start_link(Conn, Opts) ->
+    gen_server:start_link(?MODULE, [Conn, Opts], []).
 
 recv(Pid, Data) ->
     gen_server:cast(Pid, {recv, Data}).
@@ -61,13 +61,15 @@ close(Pid) ->
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
-init(Conn) ->
-    io:format("Conn: ~p~n", [Conn]),
+init([Conn, Opts]) ->
+    io:format("Sockjs Conn: ~p~n", [Conn]),
     SendFun = fun(Data) -> Conn:send(Data) end,
-    %%TODO...
-    ProtoState = emqttd_stomp_proto:init({{127,0,0,1}, 29292}, SendFun, []),
+    Peername = proplists:get_value(peername, Conn:info()),
+    ProtoEnv = proplists:get_value(frame, Opts, []),
+    ProtoState = emqttd_stomp_proto:init(Peername, SendFun, ProtoEnv),
     {ok, #state{sockjs_conn = Conn,
-                parser = emqttd_stomp_frame:parser([]),
+                parser      = emqttd_stomp_frame:parser(ProtoEnv),
+                proto_env   = ProtoEnv,
                 proto_state = ProtoState}}.
 
 handle_call(close, _From, State) ->
@@ -82,7 +84,12 @@ handle_cast({recv, Data}, State) ->
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
-handle_info(_Info, State) ->
+handle_info({dispatch, Msg}, State = #state{proto_state = ProtoState}) ->
+    {ok, ProtoState1} = emqttd_stomp_proto:send(Msg, ProtoState),
+    {noreply, State#state{proto_state = ProtoState1}};
+
+handle_info(Info, State) ->
+    lager:critical("Stomp/Sockjs: unexpected info ~p",[Info]),
     {noreply, State}.
 
 terminate(_Reason, _State) ->
@@ -103,7 +110,7 @@ received(Data, State = #state{parser      = Parser,
         {more, NewParser} ->
             noreply(State#state{parser = NewParser});
         {ok, Frame, Rest} ->
-            lager:info("RECV Frame: ~p", [Frame]),
+            lager:info("RECV Frame: ~s", [emqttd_stomp_frame:format(Frame)]),
             case emqttd_stomp_proto:received(Frame, ProtoState) of
                 {ok, ProtoState1}           ->
                     received(Rest, reset_parser(State#state{proto_state = ProtoState1}));

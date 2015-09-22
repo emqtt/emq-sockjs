@@ -35,14 +35,18 @@
 %% sockjs callback
 -export([service_stomp/3]).
 
--record(sockjs_state, {stomp}).
+-record(stomp_state, {stomp_pid, stomp_opts}).
 
 load(Env) ->
 
     SockjsOpts = proplists:get_value(sockjs, Env, []),
-    
+
+    StompOpts  = proplists:get_value(stomp, Env, []),
+
+    StompState = #stomp_state{stomp_opts = StompOpts},
+
     SockjsState = sockjs_handler:init_state(
-                        <<"/stomp">>, fun service_stomp/3, #sockjs_state{}, SockjsOpts),
+                        <<"/stomp">>, fun service_stomp/3, StompState, SockjsOpts),
 
     VhostRoutes = [{<<"/stomp/[...]">>, sockjs_cowboy_handler, SockjsState},
                    {'_', ?MODULE, []}],
@@ -74,17 +78,18 @@ docroot() ->
 terminate(_Reason, _Req, _State) ->
         ok.
 
-service_stomp(Conn, init, State) -> 
-    Stomp = emqttd_sockjs_stomp:start_link(Conn),
-    {ok, State#sockjs_state{stomp = Stomp}};
+service_stomp(Conn, init, State = #stomp_state{stomp_opts = Opts}) -> 
+    {ok, Stomp} = emqttd_sockjs_stomp:start_link(Conn, Opts),
+    {ok, State#stomp_state{stomp_pid = Stomp}};
 
-service_stomp(_Conn, {recv, Data}, State = #sockjs_state{stomp = Stomp}) ->
-    emqttd_sockjs_stomp:recv(Stomp, Data),
+service_stomp(_Conn, {recv, Data}, State = #stomp_state{stomp_pid = Pid}) ->
+    emqttd_sockjs_stomp:recv(Pid, Data),
     {ok, State};
 
 service_stomp(_Conn, {info, _Info}, State) ->
     {ok, State};
 
-service_stomp(_Conn, closed, #sockjs_state{stomp = Stomp}) ->
-    emqttd_sockjs_stomp:close(Stomp), ok.
+service_stomp(_Conn, closed, #stomp_state{stomp_pid = Pid}) ->
+    emqttd_sockjs_stomp:close(Pid), ok.
+
 
