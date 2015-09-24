@@ -48,7 +48,7 @@
       var sockjs = new SockJS('/stomp');
 
       // jsonp polling test
-      // var sockjs = new SockJS(sockjs_url, {}, {server: "emqttd", transports: ["jsonp-polling"]});
+      // var sockjs = new SockJS('/stomp', {}, {server: "emqttd", transports: ["jsonp-polling"]});
 
       sockjs.onopen = function() {
           log(' [*] Connected (using: '+sockjs.protocol+')');
