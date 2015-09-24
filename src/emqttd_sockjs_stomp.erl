@@ -84,6 +84,14 @@ handle_cast({recv, Data}, State) ->
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
+handle_info({transaction, {timeout, Id}}, State) ->
+    emqttd_stomp_transaction:timeout(Id),
+    noreply(State);
+
+handle_info({heartbeats, start, Heartbeats}, State) ->
+    %%TODO:...
+    noreply(State);
+
 handle_info({dispatch, Msg}, State = #state{proto_state = ProtoState}) ->
     {ok, ProtoState1} = emqttd_stomp_proto:send(Msg, ProtoState),
     {noreply, State#state{proto_state = ProtoState1}};
