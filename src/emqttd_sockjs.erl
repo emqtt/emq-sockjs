@@ -52,14 +52,15 @@ load(Env) ->
                    {'_', ?MODULE, []}],
 
     Routes = [{'_',  VhostRoutes}], % any vhost
+
     Dispatch = cowboy_router:compile(Routes),
 
     {Listener, Port, Acceptors} = proplists:get_value(cowboy_listener, Env),
 
-    io:format("sockjs url: http://127.0.0.1:~w~n", [Port]),
+    lager:info("SockJS URL: http://127.0.0.1:~w/stomp", [Port]),
 
     cowboy:start_http(Listener, Acceptors, [{port, Port}],
-                      [{env, [{dispatch, Dispatch}]}]).
+                        [{env, [{dispatch, Dispatch}]}]).
 
 init({_Any, http}, Req, []) ->
     {ok, Req, []}.
@@ -78,18 +79,24 @@ docroot() ->
 terminate(_Reason, _Req, _State) ->
         ok.
 
+%%------------------------------------------------------------------------------
+%% SockJS Callback
+%%------------------------------------------------------------------------------
+
 service_stomp(Conn, init, State = #stomp_state{stomp_opts = Opts}) -> 
-    {ok, Stomp} = emqttd_sockjs_stomp:start_link(Conn, Opts),
-    {ok, State#stomp_state{stomp_pid = Stomp}};
+    {ok, Pid} = emqttd_sockjs_stomp_sup:start_stomp(Conn, Opts),
+    {ok, State#stomp_state{stomp_pid = Pid}};
 
 service_stomp(_Conn, {recv, Data}, State = #stomp_state{stomp_pid = Pid}) ->
+    lager:info("SockJS Recv: ~p", [Data]),
     emqttd_sockjs_stomp:recv(Pid, Data),
     {ok, State};
 
-service_stomp(_Conn, {info, _Info}, State) ->
+service_stomp(_Conn, {info, Info}, State) ->
+    lager:info("SockJS Info: ~p", [Info]),
     {ok, State};
 
-service_stomp(_Conn, closed, #stomp_state{stomp_pid = Pid}) ->
+service_stomp(Conn, closed, #stomp_state{stomp_pid = Pid}) ->
+    lager:info("SockJS Closed:~p~n", [Conn]),
     emqttd_sockjs_stomp:close(Pid), ok.
-
 

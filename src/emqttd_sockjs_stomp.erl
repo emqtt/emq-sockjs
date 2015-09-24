@@ -33,7 +33,7 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/2, recv/2, close/1]).
+-export([start_link/2, recv/2, resume/2, close/1]).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Exports
@@ -44,9 +44,9 @@
 
 -record(state, {sockjs_conn, parser, proto_env, proto_state}).
 
-%% ------------------------------------------------------------------
-%% API Function Definitions
-%% ------------------------------------------------------------------
+%%%=============================================================================
+%%% API
+%%%=============================================================================
 
 start_link(Conn, Opts) ->
     gen_server:start_link(?MODULE, [Conn, Opts], []).
@@ -54,15 +54,18 @@ start_link(Conn, Opts) ->
 recv(Pid, Data) ->
     gen_server:cast(Pid, {recv, Data}).
 
+resume(Pid, Conn) ->
+    gen_server:cast(Pid, {resume, Conn}).
+
 close(Pid) ->
     gen_server:call(Pid, close).
 
-%% ------------------------------------------------------------------
-%% gen_server Function Definitions
-%% ------------------------------------------------------------------
+%%%=============================================================================
+%%% gen_server callbacks
+%%%=============================================================================
 
 init([Conn, Opts]) ->
-    io:format("Sockjs Conn: ~p~n", [Conn]),
+    lager:info("Stomp with Sockjs Conn: ~p", [Conn]),
     SendFun = fun(Data) -> Conn:send(Data) end,
     Peername = proplists:get_value(peername, Conn:info()),
     ProtoEnv = proplists:get_value(frame, Opts, []),
@@ -81,6 +84,9 @@ handle_call(_Request, _From, State) ->
 handle_cast({recv, Data}, State) ->
     received(Data, State);
 
+handle_cast({resume, _Conn}, State) ->
+    noreply(State);
+
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -97,7 +103,7 @@ handle_info({dispatch, Msg}, State = #state{proto_state = ProtoState}) ->
     {noreply, State#state{proto_state = ProtoState1}};
 
 handle_info(Info, State) ->
-    lager:critical("Stomp/Sockjs: unexpected info ~p",[Info]),
+    lager:critical("Stomp(Sockjs): unexpected info ~p",[Info]),
     {noreply, State}.
 
 terminate(_Reason, _State) ->
@@ -106,9 +112,10 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
-%% ------------------------------------------------------------------
-%% Internal Function Definitions
-%% ------------------------------------------------------------------
+%%%=============================================================================
+%%% Internal functions
+%%%=============================================================================
+
 received(<<>>, State) ->
     noreply(State);
 
@@ -128,7 +135,7 @@ received(Data, State = #state{parser      = Parser,
                     stop(Reason, State#state{proto_state = ProtoState1})
             end;
         {error, Error} ->
-            io:format("~p~n", [Error]),
+            lager:error("Stomp(Sockjs) Parse Error: ~p, Data: ~s", [Error, Data]),
             stop({shutdown, frame_error}, State)
     end.
 

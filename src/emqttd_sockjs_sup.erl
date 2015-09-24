@@ -50,5 +50,5 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    {ok, { {one_for_one, 5, 10}, []} }.
+    {ok, { {one_for_one, 5, 10}, [?CHILD(emqttd_sockjs_stomp_sup, supervisor)]} }.
 
