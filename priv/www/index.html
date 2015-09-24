@@ -77,7 +77,7 @@
            error.headers && log(error.headers.message);
       };
 
-      client.connect("root", "public", connect_callback, error_callback);
+      client.connect("guest", "guest", connect_callback, error_callback);
 
       $('#input').focus();
       $('#form').submit(function() {
