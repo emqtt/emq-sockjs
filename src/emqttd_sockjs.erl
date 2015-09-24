@@ -29,9 +29,6 @@
 
 -export([load/1]).
 
-%% cowboy http callback
--export([init/3, handle/2, terminate/3]).
-
 %% sockjs callback
 -export([service_stomp/3]).
 
@@ -49,7 +46,14 @@ load(Env) ->
                         <<"/stomp">>, fun service_stomp/3, StompState, SockjsOpts),
 
     VhostRoutes = [{<<"/stomp/[...]">>, sockjs_cowboy_handler, SockjsState},
-                   {'_', ?MODULE, []}],
+                   {"/[...]", cowboy_static, [
+                        {directory, {priv_dir, ?MODULE, "www"}},
+                        {mimetypes, [
+                            {<<".ico">>, [<<"image/x-icon">>]},
+                            {<<".html">>, [<<"text/html">>]},
+                            {<<".css">>, [<<"text/css">>]},
+                            {<<".js">>, [<<"application/javascript">>]}]}
+                   ]}],
 
     Routes = [{'_',  VhostRoutes}], % any vhost
 
@@ -61,23 +65,6 @@ load(Env) ->
 
     cowboy:start_http(Listener, Acceptors, [{port, Port}],
                         [{env, [{dispatch, Dispatch}]}]).
-
-init({_Any, http}, Req, []) ->
-    {ok, Req, []}.
-
-handle(Req, State) ->
-    IndexHtml = filename:join([docroot(), "index.html"]),
-    {ok, Data} = file:read_file(IndexHtml),
-    {ok, Req1} = cowboy_req:reply(200, [{<<"Content-Type">>, "text/html"}], Data, Req),
-    {ok, Req1, State}.
-
-docroot() ->
-    {file, Here} = code:is_loaded(?MODULE),
-    Dir = filename:dirname(filename:dirname(Here)),
-    filename:join([Dir, "priv", "www"]).
-
-terminate(_Reason, _Req, _State) ->
-        ok.
 
 %%------------------------------------------------------------------------------
 %% SockJS Callback
