@@ -50,7 +50,7 @@
       var sockjs = new SockJS(sockjs_url);
 
       // jsonp polling test
-      var sockjs = new SockJS(sockjs_url, {}, {transports: ["jsonp-polling"]});
+      var sockjs = new SockJS(sockjs_url, {}, {server: "emqttd", transports: ["jsonp-polling"]});
 
       //var sockjs = new SockJS(sockjs_url);
 
