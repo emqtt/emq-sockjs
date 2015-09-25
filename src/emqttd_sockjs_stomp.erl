@@ -94,8 +94,8 @@ handle_info({transaction, {timeout, Id}}, State) ->
     emqttd_stomp_transaction:timeout(Id),
     noreply(State);
 
-handle_info({heartbeats, start, Heartbeats}, State) ->
-    %%TODO:...
+handle_info({heartbeat, start, Heartbeats}, State) ->
+    %%TODO: not support still..
     noreply(State);
 
 handle_info({dispatch, Msg}, State = #state{proto_state = ProtoState}) ->
@@ -106,8 +106,13 @@ handle_info(Info, State) ->
     lager:critical("Stomp(Sockjs): unexpected info ~p",[Info]),
     {noreply, State}.
 
-terminate(_Reason, _State) ->
-    ok.
+terminate(normal, _State) ->
+    ok;
+terminate({shutdown, sockjs_closed}, _State) ->
+    ok;
+terminate(Reason, #state{sockjs_conn = Conn}) ->
+    lager:error("Stomp(SockJS) terminated for: ~p", [Reason]),
+    Conn:close(500, <<"Internal Error!">>), ok.
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
