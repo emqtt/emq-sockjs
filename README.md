@@ -50,5 +50,5 @@ http://localhost:61616/index.html
 
 ## Author
 
-Contact feng@emqtt.io if any issues.
+Contact <feng@emqtt.io> if any issues.
 

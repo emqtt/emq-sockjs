@@ -1,7 +1,7 @@
 {application, emqttd_sockjs,
  [
   {description, "SockJS(Stomp) Plugin for emqttd broker"},
-  {vsn, "0.11.0"},
+  {vsn, "0.11.1"},
   {registered, []},
   {applications, [
                   kernel,
