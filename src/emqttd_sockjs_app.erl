@@ -24,8 +24,9 @@
 %%%
 %%% @end
 %%%-----------------------------------------------------------------------------
-
 -module(emqttd_sockjs_app).
+
+-author("Feng Lee <feng@emqtt.io>").
 
 -behaviour(application).
 
@@ -37,7 +38,8 @@
 %% ===================================================================
 
 start(_StartType, _StartArgs) ->
-    with_sup(fun() -> emqttd_sockjs:load(application:get_all_env(emqttd_sockjs)) end).
+    Env = application:get_all_env(emqttd_sockjs),
+    with_sup(fun() -> emqttd_sockjs:load(Env) end).
 
 with_sup(Fun) ->
     {ok, Sup} = emqttd_sockjs_sup:start_link(), Fun(), {ok, Sup}.

@@ -24,25 +24,23 @@
 %%%
 %%% @end
 %%%-----------------------------------------------------------------------------
-
 -module(emqttd_sockjs_stomp).
+
+-author("Feng Lee <feng@emqtt.io>").
 
 -behaviour(gen_server).
 
-%% ------------------------------------------------------------------
 %% API Function Exports
-%% ------------------------------------------------------------------
-
 -export([start_link/2, recv/2, resume/2, close/1]).
 
-%% ------------------------------------------------------------------
 %% gen_server Function Exports
-%% ------------------------------------------------------------------
-
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--record(state, {sockjs_conn, parser, proto_env, proto_state}).
+-record(state, {sockjs_conn, parser_fun, proto_env, proto_state}).
+
+-define(LOG(Level, Format, Args),
+            lager:Level("Stomp(Sockjs): " ++ Format, Args)).
 
 %%%=============================================================================
 %%% API
@@ -69,9 +67,10 @@ init([Conn, Opts]) ->
     SendFun = fun(Data) -> Conn:send(Data) end,
     Peername = proplists:get_value(peername, Conn:info()),
     ProtoEnv = proplists:get_value(frame, Opts, []),
+    ParserFun = emqttd_stomp_frame:parser(ProtoEnv),
     ProtoState = emqttd_stomp_proto:init(Peername, SendFun, ProtoEnv),
     {ok, #state{sockjs_conn = Conn,
-                parser      = emqttd_stomp_frame:parser(ProtoEnv),
+                parser_fun  = ParserFun,
                 proto_env   = ProtoEnv,
                 proto_state = ProtoState}}.
 
@@ -87,7 +86,8 @@ handle_cast({recv, Data}, State) ->
 handle_cast({resume, _Conn}, State) ->
     noreply(State);
 
-handle_cast(_Msg, State) ->
+handle_cast(Msg, State) ->
+    ?LOG(error, "Unexpected msg - ~p", [Msg]),
     {noreply, State}.
 
 handle_info({transaction, {timeout, Id}}, State) ->
@@ -103,7 +103,7 @@ handle_info({dispatch, Msg}, State = #state{proto_state = ProtoState}) ->
     {noreply, State#state{proto_state = ProtoState1}};
 
 handle_info(Info, State) ->
-    lager:critical("Stomp(Sockjs): unexpected info ~p",[Info]),
+    ?LOG(error, "Unexpected info - ~p",[Info]),
     {noreply, State}.
 
 terminate(normal, _State) ->
@@ -111,7 +111,7 @@ terminate(normal, _State) ->
 terminate({shutdown, sockjs_closed}, _State) ->
     ok;
 terminate(Reason, #state{sockjs_conn = Conn}) ->
-    lager:error("Stomp(SockJS) terminated for: ~p", [Reason]),
+    ?LOG(error, "terminated for ~p", [Reason]),
     Conn:close(500, <<"Internal Error!">>), ok.
 
 code_change(_OldVsn, State, _Extra) ->
@@ -124,31 +124,37 @@ code_change(_OldVsn, State, _Extra) ->
 received(<<>>, State) ->
     noreply(State);
 
-received(Data, State = #state{parser      = Parser,
+received(Data, State = #state{parser_fun  = ParserFun,
                               proto_state = ProtoState}) ->
-    case Parser(Data) of
+    case catch ParserFun(Data) of
         {more, NewParser} ->
-            noreply(State#state{parser = NewParser});
+            noreply(State#state{parser_fun = NewParser});
         {ok, Frame, Rest} ->
-            lager:info("RECV Frame: ~s", [emqttd_stomp_frame:format(Frame)]),
+            ?LOG(info, "RECV Frame ~s", [emqttd_stomp_frame:format(Frame)]),
             case emqttd_stomp_proto:received(Frame, ProtoState) of
                 {ok, ProtoState1}           ->
                     received(Rest, reset_parser(State#state{proto_state = ProtoState1}));
                 {error, Error, ProtoState1} ->
-                    stop({shutdown, Error}, State#state{proto_state = ProtoState1});
+                    shutdown(Error, State#state{proto_state = ProtoState1});
                 {stop, Reason, ProtoState1} ->
                     stop(Reason, State#state{proto_state = ProtoState1})
             end;
         {error, Error} ->
-            lager:error("Stomp(Sockjs) Parse Error: ~p, Data: ~s", [Error, Data]),
-            stop({shutdown, frame_error}, State)
+            ?LOG(error, "Frame error - ~p", [Error]),
+            shutdown(Error, State);
+        {'EXIT', Reason} ->
+            ?LOG(error, "Parser failed for ~p", [Reason]),
+            shutdown(parser_error, State)
     end.
 
 reset_parser(State = #state{proto_env = ProtoEnv}) ->
-    State#state{parser = emqttd_stomp_frame:parser(ProtoEnv)}.
+    State#state{parser_fun = emqttd_stomp_frame:parser(ProtoEnv)}.
 
 noreply(State) ->
     {noreply, State, hibernate}.
+
+shutdown(Reason, State) ->
+    stop({shutdown, Reason}, State).
 
 stop(Reason, State) ->
     {stop, Reason, State}.

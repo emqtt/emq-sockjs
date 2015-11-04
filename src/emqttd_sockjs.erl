@@ -24,8 +24,9 @@
 %%%
 %%% @end
 %%%-----------------------------------------------------------------------------
-
 -module(emqttd_sockjs).
+
+-author("Feng Lee <feng@emqtt.io>").
 
 -export([load/1]).
 
@@ -33,6 +34,8 @@
 -export([service_stomp/3]).
 
 -record(stomp_state, {stomp_pid, stomp_opts}).
+
+-define(INFO(Format, Args), lager:info("SockJS: " ++ Format, Args)).
 
 load(Env) ->
 
@@ -61,10 +64,10 @@ load(Env) ->
 
     {Listener, Port, Acceptors} = proplists:get_value(cowboy_listener, Env),
 
-    lager:info("SockJS URL: http://127.0.0.1:~w/stomp", [Port]),
+    io:format("SockJS URL: http://127.0.0.1:~w/stomp~n", [Port]),
 
     cowboy:start_http(Listener, Acceptors, [{port, Port}],
-                        [{env, [{dispatch, Dispatch}]}]).
+                      [{env, [{dispatch, Dispatch}]}]).
 
 %%------------------------------------------------------------------------------
 %% SockJS Callback
@@ -75,15 +78,15 @@ service_stomp(Conn, init, State = #stomp_state{stomp_opts = Opts}) ->
     {ok, State#stomp_state{stomp_pid = Pid}};
 
 service_stomp(_Conn, {recv, Data}, State = #stomp_state{stomp_pid = Pid}) ->
-    lager:info("SockJS Recv: ~p", [Data]),
+    ?INFO("RECV ~p", [Data]),
     emqttd_sockjs_stomp:recv(Pid, Data),
     {ok, State};
 
 service_stomp(_Conn, {info, Info}, State) ->
-    lager:info("SockJS Info: ~p", [Info]),
+    ?INFO("Info ~p", [Info]),
     {ok, State};
 
 service_stomp(Conn, closed, #stomp_state{stomp_pid = Pid}) ->
-    lager:info("SockJS Closed:~p~n", [Conn]),
+    ?INFO("Closed ~p", [Conn]),
     emqttd_sockjs_stomp:close(Pid), ok.
 

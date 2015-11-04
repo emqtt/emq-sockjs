@@ -24,8 +24,9 @@
 %%%
 %%% @end
 %%%-----------------------------------------------------------------------------
-
 -module(emqttd_sockjs_sup).
+
+-author("Feng Lee <feng@emqtt.io>").
 
 -behaviour(supervisor).
 

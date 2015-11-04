@@ -24,7 +24,6 @@
 %%%
 %%% @end
 %%%-----------------------------------------------------------------------------
-
 -module(emqttd_sockjs_stomp_sup).
 
 -author("Feng Lee <feng@emqtt.io>").
