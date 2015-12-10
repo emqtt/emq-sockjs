@@ -19,14 +19,11 @@
 %%% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 %%% SOFTWARE.
 %%%-----------------------------------------------------------------------------
-%%% @doc
-%%% SockJS stomp supervisor
+%%% @doc SockJS stomp supervisor
 %%%
-%%% @end
+%%% @author Feng Lee <feng@emqtt.io>
 %%%-----------------------------------------------------------------------------
 -module(emqttd_sockjs_stomp_sup).
-
--author("Feng Lee <feng@emqtt.io>").
 
 -behavior(supervisor).
 

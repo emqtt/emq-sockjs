@@ -19,14 +19,11 @@
 %%% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 %%% SOFTWARE.
 %%%-----------------------------------------------------------------------------
-%%% @doc
-%%% emqttd stomp over sockjs
+%%% @doc emqttd stomp over sockjs
 %%%
-%%% @end
+%%% @author Feng Lee <feng@emqtt.io>
 %%%-----------------------------------------------------------------------------
 -module(emqttd_sockjs_stomp).
-
--author("Feng Lee <feng@emqtt.io>").
 
 -behaviour(gen_server).
 
@@ -98,7 +95,7 @@ handle_info({heartbeat, start, Heartbeats}, State) ->
     %%TODO: not support still..
     noreply(State);
 
-handle_info({dispatch, Msg}, State = #state{proto_state = ProtoState}) ->
+handle_info({dispatch, _Topic, Msg}, State = #state{proto_state = ProtoState}) ->
     {ok, ProtoState1} = emqttd_stomp_proto:send(Msg, ProtoState),
     {noreply, State#state{proto_state = ProtoState1}};
 
