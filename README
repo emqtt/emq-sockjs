@@ -1,12 +1,14 @@
 
-## emqttd_sockjs
+emqttd_sockjs
+=============
 
 The plugin could make web browsers(even IE6) talk to the emqttd broker with the awesome Stomp/SockJS library.
 
 The Web Apps could pub/sub messages to/from the emqttd broker and communicate with other MQTT clients.
 
 
-## Build
+Build
+-----
 
 **Notice that the [emqttd_stomp](https://github.com/emqtt/emqttd_stomp) plugin is required.**
 
@@ -18,7 +20,8 @@ git submodule add https://github.com/emqtt/emqttd_sockjs.git plugins/emqttd_sock
 make && make dist
 ```
 
-## Configure
+Configure
+-----------
 
 **Default port is 61616**
 
@@ -34,7 +37,8 @@ make && make dist
 ].
 ```
 
-## Load
+Load
+-----------
 
 ```
 ./bin/emqttd_ctl plugins load emqttd_stomp
@@ -43,12 +47,14 @@ make && make dist
 ```
 
 
-## Demo
+Demo
+-----------
 
 http://localhost:61616/index.html
 
 
-## Author
+Author
+-----------
 
 Contact <feng@emqtt.io> if any issues.
 

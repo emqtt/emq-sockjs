@@ -1,14 +1,16 @@
 {application, emqttd_sockjs,
  [
   {description, "SockJS(Stomp) Plugin for emqttd broker"},
-  {vsn, "1.0"},
+  {vsn, "1.1"},
+  {modules, []},
   {registered, []},
   {applications, [
                   kernel,
                   stdlib,
                   ranch,
                   cowboy,
-                  sockjs
+                  sockjs,
+                  emqttd_stomp
                  ]},
   {mod, { emqttd_sockjs_app, []}},
   {env, []}
