@@ -19,11 +19,11 @@
 %%% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 %%% SOFTWARE.
 %%%-----------------------------------------------------------------------------
-%%% @doc emqttd stomp over sockjs
+%%% @doc Stomp over sockjs
 %%%
 %%% @author Feng Lee <feng@emqtt.io>
 %%%-----------------------------------------------------------------------------
--module(emqttd_sockjs_stomp).
+-module(emq_sockjs_stomp).
 
 -behaviour(gen_server).
 
@@ -64,8 +64,8 @@ init([Conn, Opts]) ->
     SendFun = fun(Data) -> Conn:send(Data) end,
     Peername = proplists:get_value(peername, Conn:info()),
     ProtoEnv = proplists:get_value(frame, Opts, []),
-    ParserFun = emqttd_stomp_frame:parser(ProtoEnv),
-    ProtoState = emqttd_stomp_proto:init(Peername, SendFun, ProtoEnv),
+    ParserFun = emq_stomp_frame:parser(ProtoEnv),
+    ProtoState = emq_stomp_proto:init(Peername, SendFun, ProtoEnv),
     {ok, #state{sockjs_conn = Conn,
                 parser_fun  = ParserFun,
                 proto_env   = ProtoEnv,
@@ -88,7 +88,7 @@ handle_cast(Msg, State) ->
     {noreply, State}.
 
 handle_info({transaction, {timeout, Id}}, State) ->
-    emqttd_stomp_transaction:timeout(Id),
+    emq_stomp_transaction:timeout(Id),
     noreply(State);
 
 handle_info({heartbeat, start, Heartbeats}, State) ->
@@ -96,7 +96,7 @@ handle_info({heartbeat, start, Heartbeats}, State) ->
     noreply(State);
 
 handle_info({dispatch, _Topic, Msg}, State = #state{proto_state = ProtoState}) ->
-    {ok, ProtoState1} = emqttd_stomp_proto:send(Msg, ProtoState),
+    {ok, ProtoState1} = emq_stomp_proto:send(Msg, ProtoState),
     {noreply, State#state{proto_state = ProtoState1}};
 
 handle_info(Info, State) ->
@@ -127,8 +127,8 @@ received(Data, State = #state{parser_fun  = ParserFun,
         {more, NewParser} ->
             noreply(State#state{parser_fun = NewParser});
         {ok, Frame, Rest} ->
-            ?LOG(info, "RECV Frame ~s", [emqttd_stomp_frame:format(Frame)]),
-            case emqttd_stomp_proto:received(Frame, ProtoState) of
+            ?LOG(info, "RECV Frame ~s", [emq_stomp_frame:format(Frame)]),
+            case emq_stomp_proto:received(Frame, ProtoState) of
                 {ok, ProtoState1}           ->
                     received(Rest, reset_parser(State#state{proto_state = ProtoState1}));
                 {error, Error, ProtoState1} ->
@@ -145,7 +145,7 @@ received(Data, State = #state{parser_fun  = ParserFun,
     end.
 
 reset_parser(State = #state{proto_env = ProtoEnv}) ->
-    State#state{parser_fun = emqttd_stomp_frame:parser(ProtoEnv)}.
+    State#state{parser_fun = emq_stomp_frame:parser(ProtoEnv)}.
 
 noreply(State) ->
     {noreply, State, hibernate}.

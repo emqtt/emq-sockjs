@@ -9,4 +9,4 @@ rel/example_project
 .concrete/DEV_MODE
 .rebar
 .erlang.mk/
-emqttd_sockjs.d
+emq_sockjs.d

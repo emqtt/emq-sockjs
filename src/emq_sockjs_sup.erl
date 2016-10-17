@@ -19,11 +19,11 @@
 %%% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 %%% SOFTWARE.
 %%%-----------------------------------------------------------------------------
-%%% @doc emqttd sockjs supervisor
+%%% @doc Sockjs Supervisor
 %%%
 %%% @author Feng Lee <feng@emqtt.io>
 %%%-----------------------------------------------------------------------------
--module(emqttd_sockjs_sup).
+-module(emq_sockjs_sup).
 
 -behaviour(supervisor).
 
@@ -36,17 +36,9 @@
 %% Helper macro for declaring children of supervisor
 -define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
 
-%% ===================================================================
-%% API functions
-%% ===================================================================
-
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-%% ===================================================================
-%% Supervisor callbacks
-%% ===================================================================
-
 init([]) ->
-    {ok, { {one_for_one, 5, 10}, [?CHILD(emqttd_sockjs_stomp_sup, supervisor)]} }.
+    {ok, { {one_for_one, 5, 10}, [?CHILD(emq_sockjs_stomp_sup, supervisor)]} }.
 

@@ -23,7 +23,7 @@
 %%%
 %%% @author Feng Lee <feng@emqtt.io>
 %%%-----------------------------------------------------------------------------
--module(emqttd_sockjs).
+-module(emq_sockjs).
 
 -export([load/1]).
 
@@ -71,12 +71,12 @@ load(Env) ->
 %%------------------------------------------------------------------------------
 
 service_stomp(Conn, init, State = #stomp_state{stomp_opts = Opts}) -> 
-    {ok, Pid} = emqttd_sockjs_stomp_sup:start_stomp(Conn, Opts),
+    {ok, Pid} = emq_sockjs_stomp_sup:start_stomp(Conn, Opts),
     {ok, State#stomp_state{stomp_pid = Pid}};
 
 service_stomp(_Conn, {recv, Data}, State = #stomp_state{stomp_pid = Pid}) ->
     ?INFO("RECV ~p", [Data]),
-    emqttd_sockjs_stomp:recv(Pid, Data),
+    emq_sockjs_stomp:recv(Pid, Data),
     {ok, State};
 
 service_stomp(_Conn, {info, Info}, State) ->
@@ -85,5 +85,5 @@ service_stomp(_Conn, {info, Info}, State) ->
 
 service_stomp(Conn, closed, #stomp_state{stomp_pid = Pid}) ->
     ?INFO("Closed ~p", [Conn]),
-    emqttd_sockjs_stomp:close(Pid), ok.
+    emq_sockjs_stomp:close(Pid), ok.
 

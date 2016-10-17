@@ -19,11 +19,11 @@
 %%% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 %%% SOFTWARE.
 %%%-----------------------------------------------------------------------------
-%%% @doc SockJS stomp supervisor
+%%% @doc SockJS Stomp Supervisor
 %%%
 %%% @author Feng Lee <feng@emqtt.io>
 %%%-----------------------------------------------------------------------------
--module(emqttd_sockjs_stomp_sup).
+-module(emq_sockjs_stomp_sup).
 
 -behavior(supervisor).
 
@@ -46,11 +46,11 @@ start_link() ->
 start_stomp(Conn, Opts) ->
     supervisor:start_child(?MODULE, [Conn, Opts]).
 
-%%%=============================================================================
-%%% Supervisor callbacks
-%%%=============================================================================
+%%==============================================================================
+%% Supervisor callbacks
+%%==============================================================================
 init([]) ->
     {ok, {{simple_one_for_one, 0, 1},
-          [{stomp, {emqttd_sockjs_stomp, start_link, []},
-              temporary, 10000, worker, [emqttd_sockjs_stomp]}]}}.
+          [{stomp, {emq_sockjs_stomp, start_link, []},
+              temporary, 10000, worker, [emq_sockjs_stomp]}]}}.
 
